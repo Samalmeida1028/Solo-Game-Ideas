@@ -176,7 +176,7 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 80
+  orthographic size: 140
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -236,14 +236,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   fps: 30
-  width: 166
-  height: 166
-  dungeonMinSize: 30
-  iterations: 10
+  tileType: 0
+  width: 256
+  height: 256
+  dungeonMinSize: 100
+  iterations: 13
+  iterationCount: 0
   iterationMax: 240
   seed: 10
-  useRandomSeed: 0
-  randomFillPercent: 62
+  useRandomSeed: 1
+  randomFillPercent: 60
 --- !u!4 &2022092936
 Transform:
   m_ObjectHideFlags: 0

@@ -8,6 +8,8 @@ public class Generation : MonoBehaviour
 
     float counter;
 
+    public int tileType;
+
     public int
 
             width,
@@ -17,6 +19,7 @@ public class Generation : MonoBehaviour
     public int
 
             iterations,
+            iterationCount,
             iterationMax;
 
     public string seed;
@@ -33,18 +36,55 @@ public class Generation : MonoBehaviour
     void Start()
     {
         fps = 1 / fps;
-        GenerateMap();
-        ProcessMap();
+        iterationCount = iterations;
+        //GenerateMap();
     }
 
-    /*void FixedUpdate()
+    void FixedUpdate()
     {
-        counter += Time.fixedDeltaTime;
-        if (Input.GetMouseButtonDown(1))
+        counter += Time.deltaTime;
+
+        if (Input.GetMouseButton(0) && counter > fps)
         {
+            iterationCount = iterations;
+            counter = 0;
             GenerateMap();
         }
-        else
+        if (Input.GetMouseButton(1) && counter > fps)
+        {
+            counter = 0;
+            SmoothMap();
+            iterationCount += 1;
+        }
+        if (Input.GetKey(KeyCode.A)) tileType = 0;
+        if (Input.GetKey(KeyCode.S)) tileType = 1;
+
+        if (Input.GetKey(KeyCode.LeftArrow))
+        {
+            randomFillPercent -= 1;
+        }
+        if (Input.GetKey(KeyCode.RightArrow))
+        {
+            randomFillPercent += 1;
+        }
+        if (Input.GetKey(KeyCode.UpArrow))
+        {
+            dungeonMinSize += 5;
+        }
+        if (Input.GetKey(KeyCode.DownArrow))
+        {
+            dungeonMinSize -= 5;
+        }
+        if (Input.GetKey(KeyCode.Equals))
+        {
+            iterations += 1;
+        }
+        if (Input.GetKey(KeyCode.Minus))
+        {
+            iterations -= 1;
+        }
+
+        /*else
         {
             if(counter>fps){
                 counter = 0;
@@ -57,8 +97,9 @@ public class Generation : MonoBehaviour
             iterations = 0;
             GenerateMap();
 
-        }
-    }*/
+        }*/
+    }
+
     void GenerateMap()
     {
         noiseMap = new int[width, height];
@@ -69,90 +110,113 @@ public class Generation : MonoBehaviour
         {
             SmoothMap();
         }
+        FillInvalidRegions (tileType, dungeonMinSize);
     }
 
-    List<List<Coord>> FindValidRegions(int tileType, int minSize){
+    List<List<Coord>> FindValidRegions(int tileType, int minSize)
+    {
         List<List<Coord>> allRegions = GetRegions(tileType);
         List<List<Coord>> validRegions = new List<List<Coord>>();
 
-        foreach(List<Coord> region in allRegions){
-            if(wallRegion.Count >= minSize){
-                validRegions.Add(region);
+        foreach (List<Coord> region in allRegions)
+        {
+            if (region.Count >= minSize)
+            {
+                validRegions.Add (region);
+            }
         }
         return validRegions;
-
     }
-    List<List<Coord>> FindInvalidRegions(int tileType, int minSize){
+
+    List<List<Coord>> FindInvalidRegions(int tileType, int minSize)
+    {
         List<List<Coord>> allRegions = GetRegions(tileType);
         List<List<Coord>> invalidRegions = new List<List<Coord>>();
 
-        foreach(List<Coord> region in allRegions){
-            if(wallRegion.Count < minSize){
-                invalidRegions.Add(region);
+        foreach (List<Coord> region in allRegions)
+        {
+            if (region.Count < minSize)
+            {
+                invalidRegions.Add (region);
+            }
         }
         return invalidRegions;
-
     }
 
-    void FillInvalidRegions(int tileType, int minSize){
-        List<List<Coord>> invalidRegions = FindInvalidRegions(tileType,minSize;
-        foreach()
-
+    void FillInvalidRegions(int tileType, int minSize)
+    {
+        List<List<Coord>> invalidRegions =
+            FindInvalidRegions(tileType, minSize);
+        foreach (List<Coord> region in invalidRegions)
+        {
+            foreach (Coord tile in region)
+            {
+                if (tileType == 1)
+                {
+                    noiseMap[tile.tileX, tile.tileY] = 0;
+                }
+                else
+                    noiseMap[tile.tileX, tile.tileY] = 1;
+            }
+        }
     }
 
-
-
-    List<List<Coord>> GetRegions(int tileType){
+    List<List<Coord>> GetRegions(int tileType)
+    {
         List<List<Coord>> regions = new List<List<Coord>>();
-        int[,] mapFlags = new int[width,height];
-          for (int x = 0; x < width; x++)
+        int[,] mapFlags = new int[width, height];
+        for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
             {
-                if(mapFlags[x,y]==0 && noiseMap[x,y] == tileType){
-                    List<Coord> newRegion = GetRegionTiles(x,y);
-                    regions.Add(newRegion);
-                    foreach(Coord tile in newRegion){
-                        mapFlags[tile.tileX,tile.tileY] = 1;
+                if (mapFlags[x, y] == 0 && noiseMap[x, y] == tileType)
+                {
+                    List<Coord> newRegion = GetRegionTiles(x, y);
+                    regions.Add (newRegion);
+                    foreach (Coord tile in newRegion)
+                    {
+                        mapFlags[tile.tileX, tile.tileY] = 1;
                     }
                 }
-
             }
-
         }
 
         return regions;
-
     }
 
-    List<Coord> GetRegionTiles(int startX, int startY){
+    List<Coord> GetRegionTiles(int startX, int startY)
+    {
         List<Coord> tiles = new List<Coord>();
-        int[,] mapFlags = new int[width,height];
-        int tileType = noiseMap[startX,startY];
+        int[,] mapFlags = new int[width, height];
+        int tileType = noiseMap[startX, startY];
 
-        Queue<Coord> queue = new Queue<Coord> ();
-        queue.Enqueue (new Coord(startX,startY));
-        mapFlags[startX,startY] = 1;
-        while(queue.Count >0){
+        Queue<Coord> queue = new Queue<Coord>();
+        queue.Enqueue(new Coord(startX, startY));
+        mapFlags[startX, startY] = 1;
+        while (queue.Count > 0)
+        {
             Coord tile = queue.Dequeue();
-            tiles.Add(tile);
-            for(int x = tile.tileX -1; x<= tile.tileX+1;x++){
-                for(int y = tile.tileY -1; y<= tile.tileY+1;y++){
-                    if(IsInMapRange(x,y) && (y == tile.tileY|| x == tile.tileX)){
-                        if(mapFlags[x,y] == 0 && noiseMap[x,y] == tileType){
-                            mapFlags[x,y] = 1;
-                            queue.Enqueue(new Coord(x,y));
+            tiles.Add (tile);
+            for (int x = tile.tileX - 1; x <= tile.tileX + 1; x++)
+            {
+                for (int y = tile.tileY - 1; y <= tile.tileY + 1; y++)
+                {
+                    if (
+                        IsInMapRange(x, y) &&
+                        (y == tile.tileY || x == tile.tileX)
+                    )
+                    {
+                        if (mapFlags[x, y] == 0 && noiseMap[x, y] == tileType)
+                        {
+                            mapFlags[x, y] = 1;
+                            queue.Enqueue(new Coord(x, y));
                         }
-
                     }
                 }
-
             }
         }
         return tiles;
     }
-
-
 
     void RandomFillMap()
     {
@@ -232,10 +296,12 @@ public class Generation : MonoBehaviour
         noiseMap = cellMap;
         cellMap = new int[width, height];
     }
-    
-    bool IsInMapRange(int x, int y){
+
+    bool IsInMapRange(int x, int y)
+    {
         return x >= 0 && x < width && y >= 0 && y < height;
     }
+
     int GetSurroundingWallCount(int gridX, int gridY)
     {
         int wallCount = 0;
@@ -243,7 +309,7 @@ public class Generation : MonoBehaviour
         {
             for (int neighborY = gridY - 1; neighborY <= gridY + 1; neighborY++)
             {
-                if(IsInMapRange(neighborX,neighborY))
+                if (IsInMapRange(neighborX, neighborY))
                 {
                     if (neighborX != gridX || neighborY != gridY)
                     {
