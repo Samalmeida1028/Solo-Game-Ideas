@@ -11,9 +11,13 @@ public class Generation : MonoBehaviour
     public int
 
             width,
-            height;
+            height,
+            dungeonMinSize;
 
-    public int iterations;
+    public int
+
+            iterations,
+            iterationMax;
 
     public string seed;
 
@@ -30,27 +34,31 @@ public class Generation : MonoBehaviour
     {
         fps = 1 / fps;
         GenerateMap();
+        ProcessMap();
     }
 
-    void FixedUpdate()
+    /*void FixedUpdate()
     {
+        counter += Time.fixedDeltaTime;
         if (Input.GetMouseButtonDown(1))
         {
             GenerateMap();
         }
         else
         {
-            if(Input.GetMouseButton(0)){
+            if(counter>fps){
+                counter = 0;
             SmoothMap();
+            iterations += 1;
             }
         }
-        /*counter += Time.fixedDeltaTime;
-        if(counter>fps){
-            counter = 0;
-            SmoothMap();
-        }*/
-    }
 
+        if(iterations>iterationMax){
+            iterations = 0;
+            GenerateMap();
+
+        }
+    }*/
     void GenerateMap()
     {
         noiseMap = new int[width, height];
@@ -62,6 +70,89 @@ public class Generation : MonoBehaviour
             SmoothMap();
         }
     }
+
+    List<List<Coord>> FindValidRegions(int tileType, int minSize){
+        List<List<Coord>> allRegions = GetRegions(tileType);
+        List<List<Coord>> validRegions = new List<List<Coord>>();
+
+        foreach(List<Coord> region in allRegions){
+            if(wallRegion.Count >= minSize){
+                validRegions.Add(region);
+        }
+        return validRegions;
+
+    }
+    List<List<Coord>> FindInvalidRegions(int tileType, int minSize){
+        List<List<Coord>> allRegions = GetRegions(tileType);
+        List<List<Coord>> invalidRegions = new List<List<Coord>>();
+
+        foreach(List<Coord> region in allRegions){
+            if(wallRegion.Count < minSize){
+                invalidRegions.Add(region);
+        }
+        return invalidRegions;
+
+    }
+
+    void FillInvalidRegions(int tileType, int minSize){
+        List<List<Coord>> invalidRegions = FindInvalidRegions(tileType,minSize;
+        foreach()
+
+    }
+
+
+
+    List<List<Coord>> GetRegions(int tileType){
+        List<List<Coord>> regions = new List<List<Coord>>();
+        int[,] mapFlags = new int[width,height];
+          for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                if(mapFlags[x,y]==0 && noiseMap[x,y] == tileType){
+                    List<Coord> newRegion = GetRegionTiles(x,y);
+                    regions.Add(newRegion);
+                    foreach(Coord tile in newRegion){
+                        mapFlags[tile.tileX,tile.tileY] = 1;
+                    }
+                }
+
+            }
+
+        }
+
+        return regions;
+
+    }
+
+    List<Coord> GetRegionTiles(int startX, int startY){
+        List<Coord> tiles = new List<Coord>();
+        int[,] mapFlags = new int[width,height];
+        int tileType = noiseMap[startX,startY];
+
+        Queue<Coord> queue = new Queue<Coord> ();
+        queue.Enqueue (new Coord(startX,startY));
+        mapFlags[startX,startY] = 1;
+        while(queue.Count >0){
+            Coord tile = queue.Dequeue();
+            tiles.Add(tile);
+            for(int x = tile.tileX -1; x<= tile.tileX+1;x++){
+                for(int y = tile.tileY -1; y<= tile.tileY+1;y++){
+                    if(IsInMapRange(x,y) && (y == tile.tileY|| x == tile.tileX)){
+                        if(mapFlags[x,y] == 0 && noiseMap[x,y] == tileType){
+                            mapFlags[x,y] = 1;
+                            queue.Enqueue(new Coord(x,y));
+                        }
+
+                    }
+                }
+
+            }
+        }
+        return tiles;
+    }
+
+
 
     void RandomFillMap()
     {
@@ -141,7 +232,10 @@ public class Generation : MonoBehaviour
         noiseMap = cellMap;
         cellMap = new int[width, height];
     }
-
+    
+    bool IsInMapRange(int x, int y){
+        return x >= 0 && x < width && y >= 0 && y < height;
+    }
     int GetSurroundingWallCount(int gridX, int gridY)
     {
         int wallCount = 0;
@@ -149,12 +243,7 @@ public class Generation : MonoBehaviour
         {
             for (int neighborY = gridY - 1; neighborY <= gridY + 1; neighborY++)
             {
-                if (
-                    neighborX >= 0 &&
-                    neighborX < width &&
-                    neighborY >= 0 &&
-                    neighborY < height
-                )
+                if(IsInMapRange(neighborX,neighborY))
                 {
                     if (neighborX != gridX || neighborY != gridY)
                     {
@@ -168,5 +257,18 @@ public class Generation : MonoBehaviour
             }
         }
         return wallCount;
+    }
+
+    struct Coord
+    {
+        public int tileX;
+
+        public int tileY;
+
+        public Coord(int x, int y)
+        {
+            tileX = x;
+            tileY = y;
+        }
     }
 }
