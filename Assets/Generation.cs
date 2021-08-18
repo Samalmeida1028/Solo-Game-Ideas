@@ -33,7 +33,17 @@ public class Generation : MonoBehaviour
     {
         if (useRandomSeed)
         {
-            seed = Time.time.ToString();
+            int a = Random.Range(0,100);
+            Random.seed = Random.Range(0,100);
+            int b = Random.Range(0,100);
+            Random.seed = Random.Range(0,100);
+            int c = Random.Range(0,100);
+            Random.seed = Random.Range(0,100);
+            int d = Random.Range(0,1000);
+            Random.seed = Random.Range(0,1000);
+
+            int full = a*b*c*d;
+            seed = full.ToString();
         }
         System.Random prng = new System.Random(seed.GetHashCode());
 
