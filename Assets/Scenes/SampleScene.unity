@@ -235,17 +235,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 909510df1bf5a7d44a40b46c86bacd01, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  fps: 30
+  fps: 10
   tileType: 0
-  width: 256
-  height: 256
+  width: 128
+  height: 128
   dungeonMinSize: 100
-  iterations: 13
+  iterations: 1
   iterationCount: 0
   iterationMax: 240
   seed: 10
   useRandomSeed: 1
-  randomFillPercent: 60
+  randomFillPercent: 57
 --- !u!4 &2022092936
 Transform:
   m_ObjectHideFlags: 0
