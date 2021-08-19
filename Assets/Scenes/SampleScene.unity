@@ -237,10 +237,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   fps: 10
   tileType: 0
+  isDijkstra: 0
   width: 128
   height: 128
-  dungeonMinSize: 100
-  iterations: 1
+  dungeonMinSize: 0
+  iterations: 3
   iterationCount: 0
   iterationMax: 240
   seed: 10

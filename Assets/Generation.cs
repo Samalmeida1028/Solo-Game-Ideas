@@ -10,6 +10,7 @@ public class Generation : MonoBehaviour
     float counter;
 
     public int tileType;
+    public bool isDijkstra;
 
     public int
 
@@ -33,6 +34,10 @@ public class Generation : MonoBehaviour
     int[,] noiseMap;
 
     int[,] cellMap;
+
+    int[,] mapSteps;
+
+    int[,] dijkstraMapPlayerPos;
 
     void Start()
     {
@@ -105,6 +110,8 @@ public class Generation : MonoBehaviour
     {
         noiseMap = new int[width, height];
         cellMap = new int[width, height];
+        dijkstraMapPlayerPos = new int[width,height];
+        mapSteps = new int[width, height];
 
         RandomFillMap();
         for (int i = 0; i < iterations; i++)
@@ -119,11 +126,19 @@ public class Generation : MonoBehaviour
             validRooms.Add(new Room(Room, noiseMap));
         }
         validRooms.Sort();
-        Debug.Log(validRooms.Count);
         validRooms[0].isMainRoom = true;
         validRooms[0].isAccessibleFromMain = true;
-
+        Coord startPos = GenerateRandomStart(validRooms[0].roomTiles);
+        GenerateStepsFromStart(startPos.tileX, startPos.tileY,false);
         ConnectClosestRoom (validRooms);
+        GenerateStepsFromStart(startPos.tileX, startPos.tileY,true);
+        List<List<Coord>> wallRegions = GetRegions(1);
+        foreach(List<Coord> wallRegion in wallRegions){
+            foreach(Coord wall in wallRegion){
+                dijkstraMapPlayerPos[wall.tileX,wall.tileY]=Int32.MaxValue;
+            }
+        }
+
     }
 
     List<List<Coord>> FindValidRegions(int tileType, int minSize)
@@ -206,6 +221,7 @@ public class Generation : MonoBehaviour
         Queue<Coord> queue = new Queue<Coord>();
         queue.Enqueue(new Coord(startX, startY));
         mapFlags[startX, startY] = 1;
+
         while (queue.Count > 0)
         {
             Coord tile = queue.Dequeue();
@@ -257,6 +273,8 @@ public class Generation : MonoBehaviour
 
     void OnDrawGizmos()
     {
+        float range = 0;
+        Color gradient = new Color();
         if (noiseMap != null)
         {
             for (int x = 0; x < width; x++)
@@ -270,6 +288,65 @@ public class Generation : MonoBehaviour
                             -height / 2 + y + .5f,
                             0);
                     Gizmos.DrawCube(pos, Vector3.one);
+                    if(!isDijkstra){
+                    range -= mapSteps[x, y] / 300;
+                    }
+                    else  range -= dijkstraMapPlayerPos[x, y] / 300;
+
+
+                    if (Math.Abs(range) < 5)
+                    {
+                        Gizmos.color  = Color.white;
+                    }
+                    
+                    else if (Math.Abs(range) >= Mathf.Abs(5) && Math.Abs(range) < Mathf.Abs(10))
+                    {
+                         Gizmos.color  = Color.magenta;
+                    }
+                    else if (Math.Abs(range) >= Mathf.Abs(10) && Math.Abs(range) < Mathf.Abs(15))
+                    {
+                         Gizmos.color  = Color.red;
+                    }
+                    else if (Math.Abs(range) >= Mathf.Abs(15) && Math.Abs(range) < Mathf.Abs(20))
+                    {
+                         Gizmos.color  = Color.yellow;
+                    }
+                    else if (Math.Abs(range) >= Mathf.Abs(20) && Math.Abs(range) < Mathf.Abs(25))
+                    {
+                         Gizmos.color = Color.green;
+                    }
+                    else if (Math.Abs(range) >= Mathf.Abs(25) && Math.Abs(range) < Mathf.Abs(30))
+                    {
+                         Gizmos.color = Color.cyan;
+                    }
+                    else if (Math.Abs(range) >= Mathf.Abs(30) && Math.Abs(range) < Mathf.Abs(35))
+                    {
+                         Gizmos.color = Color.gray;
+                    }
+                    else if (Math.Abs(range) >= Mathf.Abs(35) && Math.Abs(range) < Mathf.Abs(60))
+                    {
+                         Gizmos.color = Color.black;
+                    }
+                    //gradient.g -= mapSteps[x,y]/1000;
+                    //gradient.b -= mapSteps[x,y]/1000;
+                    //Debug.Log(mapSteps[x,y]);
+                    if(!isDijkstra){
+                    if (mapSteps[x, y] == 0)
+                    {
+                        Gizmos.color = Color.red;
+                        Gizmos.DrawCube(pos, Vector3.one * 1.5f);
+                    }
+                    }
+                    else{
+                        if (dijkstraMapPlayerPos[x, y] == 0)
+                    {
+                        Gizmos.color = Color.red;
+                        Gizmos.DrawCube(pos, Vector3.one * 1.5f);
+                    }
+
+                    }
+                    Gizmos.DrawCube(pos, Vector3.one / 2);
+                    range = 0;
                 }
             }
         }
@@ -438,11 +515,12 @@ public class Generation : MonoBehaviour
     void CreatePassage(Room roomA, Room roomB, Coord tileA, Coord tileB)
     {
         Room.ConnectRooms (roomA, roomB);
+
         //Debug.DrawLine(CoordToPos(tileA), CoordToPos(tileB), Color.black, 100f);
         List<Coord> line = GetLine(tileA, tileB);
         foreach (Coord c in line)
         {
-            DrawCircle(c,2);
+            DrawCircle(c, 2);
         }
     }
 
@@ -456,8 +534,9 @@ public class Generation : MonoBehaviour
                 {
                     int realX = c.tileX + x;
                     int realY = c.tileY + y;
-                    if(IsInMapRange(realX,realY)){
-                        noiseMap[realX,realY]=0;
+                    if (IsInMapRange(realX, realY))
+                    {
+                        noiseMap[realX, realY] = 0;
                     }
                 }
             }
@@ -601,6 +680,68 @@ public class Generation : MonoBehaviour
         public bool isConnected(Room otherRoom)
         {
             return connectedRooms.Contains(otherRoom);
+        }
+    }
+
+    Coord GenerateRandomStart(List<Coord> mainRoom)
+    {
+        Coord startPos = mainRoom[UnityEngine.Random.Range(0, mainRoom.Count)];
+        return startPos;
+    }
+
+    void GenerateStepsFromStart(int startX, int startY, bool dijkStra)
+    {
+        Queue<Coord> queue = new Queue<Coord>();
+        int count = 1;
+        queue.Enqueue(new Coord(startX, startY));
+        int[,] mapFlags = new int[width, height];
+
+        mapFlags[startX, startY] = 1;
+        mapSteps[startX, startY] = 0;
+        if(dijkStra){
+            dijkstraMapPlayerPos[startX,startY] = 0;
+        }
+
+        while (queue.Count > 0)
+        {
+            Coord tile = queue.Dequeue();
+            for (int x = tile.tileX - 1; x <= tile.tileX + 1; x++)
+            {
+                for (int y = tile.tileY - 1; y <= tile.tileY + 1; y++)
+                {
+                    if(!dijkStra){
+                    if (
+                        IsInMapRange(x, y) &&
+                        (y == tile.tileY || x == tile.tileX)
+                    )
+                    {
+                        if (mapFlags[x, y] == 0)
+                        {
+                            mapSteps[x, y] = count;
+                            queue.Enqueue(new Coord(x, y));
+                            mapFlags[x, y] = 1;
+                        }
+                    }
+                    }
+                    else{
+                        if (
+                        IsInMapRange(x, y) &&
+                        (y == tile.tileY || x == tile.tileX)
+                    )
+                    {
+                        if (mapFlags[x, y] == 0 && noiseMap[x,y] == noiseMap[startX,startY])
+                        {
+                            dijkstraMapPlayerPos[x, y] = count;
+                            queue.Enqueue(new Coord(x, y));
+                            mapFlags[x, y] = 1;
+                        }
+
+                    }
+
+                    }
+                }
+            }
+            count += 1;
         }
     }
 }
