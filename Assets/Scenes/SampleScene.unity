@@ -322,7 +322,7 @@ TilemapRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 1
   m_ChunkSize: {x: 32, y: 32, z: 32}
   m_ChunkCullingBounds: {x: 0, y: 0, z: 0}
   m_MaxChunkCount: 16
@@ -401,8 +401,8 @@ MonoBehaviour:
   fps: 10
   tileType: 0
   isDijkstra: 0
-  width: 128
-  height: 128
+  width: 64
+  height: 64
   dungeonMinSize: 0
   iterations: 3
   iterationCount: 0
@@ -411,10 +411,13 @@ MonoBehaviour:
   useRandomSeed: 1
   randomFillPercent: 57
   foregroundGrid: {fileID: 1065474955}
-  wallTile: {fileID: 11400000, guid: e4c64e38919949d4e825321f954923b4, type: 2}
-  floorTile: {fileID: 11400000, guid: eada6f849c767724abf93860ca9323d5, type: 2}
-  foregroundTiles: {fileID: 2070962272}
-  backgroundTiles: {fileID: 1725085576}
+  wallTile: {fileID: 11400000, guid: eada6f849c767724abf93860ca9323d5, type: 2}
+  floorTile: {fileID: 11400000, guid: e4c64e38919949d4e825321f954923b4, type: 2}
+  oreIndicator: {fileID: 11400000, guid: 6bf4701704c94ea4ab6f996bcd14524b, type: 2}
+  enemyIndicator: {fileID: 11400000, guid: 56c80ac8604ff7d4a966374d7f2429b3, type: 2}
+  playerIndicator: {fileID: 11400000, guid: d3d0cebef88f55c4e93faad1bb5e2766, type: 2}
+  foregroundTiles: {fileID: 1725085576}
+  backgroundTiles: {fileID: 2070962272}
 --- !u!4 &2022092936
 Transform:
   m_ObjectHideFlags: 0

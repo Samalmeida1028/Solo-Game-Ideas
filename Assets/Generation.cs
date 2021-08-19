@@ -43,6 +43,10 @@ public class Generation : MonoBehaviour
     public Grid foregroundGrid;
     public Tile wallTile;
     public Tile floorTile;
+    public Tile oreIndicator;
+    public Tile enemyIndicator;
+    public Tile playerIndicator;
+
     public Tilemap foregroundTiles;
     public Tilemap backgroundTiles;
 
@@ -116,6 +120,9 @@ public class Generation : MonoBehaviour
 
     void GenerateMap()
     {
+        foregroundTiles.ClearAllTiles();
+        backgroundTiles.ClearAllTiles();
+
         noiseMap = new int[width, height];
         cellMap = new int[width, height];
         dijkstraMapPlayerPos = new int[width,height];
@@ -140,12 +147,18 @@ public class Generation : MonoBehaviour
         GenerateStepsFromStart(startPos.tileX, startPos.tileY,false);
         ConnectClosestRoom (validRooms);
         GenerateStepsFromStart(startPos.tileX, startPos.tileY,true);
+        
         List<List<Coord>> wallRegions = GetRegions(1);
+        List<List<Coord>> floorMap = GetRegions(0);
         foreach(List<Coord> wallRegion in wallRegions){
             foreach(Coord wall in wallRegion){
                 dijkstraMapPlayerPos[wall.tileX,wall.tileY]=Int32.MaxValue;
             }
         }
+        TilePlacer();
+        OrePlacer();
+        EnemySpawner(floorMap,startPos);
+        //foregroundTiles.RefreshAllTiles();
 
 
     }
@@ -296,7 +309,6 @@ public class Generation : MonoBehaviour
                         new Vector3(-width / 2 + x + .5f,
                             -height / 2 + y + .5f,
                             0);
-                    Gizmos.DrawCube(pos, Vector3.one);
                     if(!isDijkstra){
                     range -= mapSteps[x, y] / 300;
                     }
@@ -354,7 +366,7 @@ public class Generation : MonoBehaviour
                     }
 
                     }
-                    Gizmos.DrawCube(pos, Vector3.one / 2);
+                    Gizmos.DrawCube(pos, Vector3.one / 3);
                     range = 0;
                 }
             }
@@ -753,4 +765,49 @@ public class Generation : MonoBehaviour
             count += 1;
         }
     }
+
+    void TilePlacer(){
+        for(int tileX = 0; tileX < noiseMap.GetLength(0); tileX++){
+            for(int tileY= 0; tileY< noiseMap.GetLength(0); tileY++){
+            if(noiseMap[tileX,tileY] == 0){
+                backgroundTiles.SetTile(new Vector3Int(-width / 2 + tileX,-height / 2 + tileY,0),floorTile);
+            }
+            if(noiseMap[tileX,tileY] == 1){
+                foregroundTiles.SetTile(new Vector3Int(-width / 2 + tileX,-height / 2 + tileY,0),wallTile);
+            }
+            }
+        }
+    }
+
+    void OrePlacer(){
+
+        for(int tileX = 0; tileX < noiseMap.GetLength(0); tileX++){
+            for(int tileY= 0; tileY< noiseMap.GetLength(0); tileY++){
+                        int spawnChance = (int)(UnityEngine.Random.Range(0f,1f) * (Mathf.Pow(mapSteps[tileX,tileY],UnityEngine.Random.Range(1f,1.2f))/500));
+                        if(spawnChance>15 && spawnChance<23 && noiseMap[tileX,tileY] == 1){
+                            //Debug.Log("hello");
+                            //foregroundTiles.SetTile(new Vector3Int(-width / 2 + tileX,-height / 2 + tileY,0),null);
+                            foregroundTiles.SetTile(new Vector3Int(-width / 2 + tileX,-height / 2 + tileY,0),oreIndicator);
+                        }
+                    }
+                }
+
+    }
+
+    void EnemySpawner(List<List<Coord>> floorMap, Coord startPos){
+        List<Coord> floor = floorMap[0];
+        foreach ( Coord floorTile in floor)
+        {
+            if(floorTile.tileX == startPos.tileX && floorTile.tileY == startPos.tileY){
+                foregroundTiles.SetTile(new Vector3Int(-width / 2 + floorTile.tileX,-height / 2 + floorTile.tileY,0),playerIndicator);
+            }
+            int spawnChance = (int)(UnityEngine.Random.Range(0f,.1f) * (Mathf.Pow(dijkstraMapPlayerPos[floorTile.tileX,floorTile.tileY],UnityEngine.Random.Range(1f,2f)))/1000);
+            Debug.Log(spawnChance);
+            if(spawnChance>=7 && spawnChance<11){
+                foregroundTiles.SetTile(new Vector3Int(-width / 2 + floorTile.tileX,-height / 2 + floorTile.tileY,0),enemyIndicator);
+            }
+
+        }
+    }
+
 }
