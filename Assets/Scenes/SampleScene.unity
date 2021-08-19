@@ -411,8 +411,8 @@ MonoBehaviour:
   useRandomSeed: 1
   randomFillPercent: 57
   foregroundGrid: {fileID: 1065474955}
-  wallTile: {fileID: 0}
-  floorTile: {fileID: 0}
+  wallTile: {fileID: 11400000, guid: e4c64e38919949d4e825321f954923b4, type: 2}
+  floorTile: {fileID: 11400000, guid: eada6f849c767724abf93860ca9323d5, type: 2}
   foregroundTiles: {fileID: 2070962272}
   backgroundTiles: {fileID: 1725085576}
 --- !u!4 &2022092936

@@ -41,8 +41,8 @@ public class Generation : MonoBehaviour
     int[,] dijkstraMapPlayerPos;
 
     public Grid foregroundGrid;
-    public TileBase wallTile;
-    public TileBase floorTile;
+    public Tile wallTile;
+    public Tile floorTile;
     public Tilemap foregroundTiles;
     public Tilemap backgroundTiles;
 
