@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 public class Generation : MonoBehaviour
 {
@@ -38,6 +39,13 @@ public class Generation : MonoBehaviour
     int[,] mapSteps;
 
     int[,] dijkstraMapPlayerPos;
+
+    public Grid foregroundGrid;
+    public TileBase wallTile;
+    public TileBase floorTile;
+    public Tilemap foregroundTiles;
+    public Tilemap backgroundTiles;
+
 
     void Start()
     {
@@ -138,6 +146,7 @@ public class Generation : MonoBehaviour
                 dijkstraMapPlayerPos[wall.tileX,wall.tileY]=Int32.MaxValue;
             }
         }
+
 
     }
 
