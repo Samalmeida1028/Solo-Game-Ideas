@@ -10,46 +10,61 @@ public class Generation : MonoBehaviour
 
     float counter;
 
-    public int tileType;
-    public bool isDijkstra;
-
-    public int
-
-            width,
-            height,
-            dungeonMinSize;
-
-    public int
-
-            iterations,
-            iterationCount,
-            iterationMax;
-
-    public string seed;
-
-    public bool useRandomSeed;
+[Header("Generation Settings")]
 
     [Range(0, 100)]
     public int randomFillPercent;
 
-    int[,] noiseMap;
+    public int 
+        width,
+        height,
+        dungeonMinSize,
+        iterations,
+        iterationCount,
+        iterationMax;
 
-    int[,] cellMap;
+    public bool isDijkstra;
 
-    int[,] mapSteps;
+    public string seed;
 
-    int[,] dijkstraMapPlayerPos;
+    public bool useRandomSeed;
+    [Space(100)]
 
+
+    public int[,] 
+    
+        noiseMap,
+        cellMap,
+        mapSteps,
+        dijkstraMapPlayerPos;
+
+[Header("Tile Map Objects")]
     public Grid foregroundGrid;
-    public Tile wallTile;
-    public Tile floorTile;
-    public Tile oreIndicator;
-    public Tile enemyIndicator;
-    public Tile playerIndicator;
-
     public Tilemap foregroundTiles;
     public Tilemap backgroundTiles;
+    public Tile
+        wallTile,
+        floorTile,
+        oreIndicator,
+        enemyIndicator,
+        playerIndicator;
+    public int tileType;
 
+
+
+[Header("Spawner Settings")]
+    [Range(0, 100)]
+    public int enemyMax;
+    [Range(0, 100)]
+    public int oreMax;
+    [Range(0, 100)]
+    public int enemySpawnMin;
+    [Range(0, 100)]
+    public int enemySpawnMax;
+    [Range(0, 100)]
+    public int oreSpawnMin;
+    [Range(0, 100)]
+    public int oreSpawnMax;
 
     void Start()
     {
@@ -780,14 +795,13 @@ public class Generation : MonoBehaviour
     }
 
     void OrePlacer(){
-
+        int oreCount = 0;
         for(int tileX = 0; tileX < noiseMap.GetLength(0); tileX++){
             for(int tileY= 0; tileY< noiseMap.GetLength(0); tileY++){
                         int spawnChance = (int)(UnityEngine.Random.Range(0f,1f) * (Mathf.Pow(mapSteps[tileX,tileY],UnityEngine.Random.Range(1f,1.2f))/500));
-                        if(spawnChance>15 && spawnChance<23 && noiseMap[tileX,tileY] == 1){
-                            //Debug.Log("hello");
-                            //foregroundTiles.SetTile(new Vector3Int(-width / 2 + tileX,-height / 2 + tileY,0),null);
+                        if(oreCount<oreMax && spawnChance>oreSpawnMin && spawnChance<oreSpawnMax && noiseMap[tileX,tileY] == 1){
                             foregroundTiles.SetTile(new Vector3Int(-width / 2 + tileX,-height / 2 + tileY,0),oreIndicator);
+                            oreCount += 1;
                         }
                     }
                 }
@@ -795,6 +809,7 @@ public class Generation : MonoBehaviour
     }
 
     void EnemySpawner(List<List<Coord>> floorMap, Coord startPos){
+        int enemyCount = 0;
         List<Coord> floor = floorMap[0];
         foreach ( Coord floorTile in floor)
         {
@@ -802,9 +817,9 @@ public class Generation : MonoBehaviour
                 foregroundTiles.SetTile(new Vector3Int(-width / 2 + floorTile.tileX,-height / 2 + floorTile.tileY,0),playerIndicator);
             }
             int spawnChance = (int)(UnityEngine.Random.Range(0f,.1f) * (Mathf.Pow(dijkstraMapPlayerPos[floorTile.tileX,floorTile.tileY],UnityEngine.Random.Range(1f,2f)))/1000);
-            Debug.Log(spawnChance);
-            if(spawnChance>=7 && spawnChance<11){
+            if(enemyCount < enemyMax && spawnChance>=enemySpawnMin && spawnChance<enemySpawnMax){
                 foregroundTiles.SetTile(new Vector3Int(-width / 2 + floorTile.tileX,-height / 2 + floorTile.tileY,0),enemyIndicator);
+                enemyCount += 1;
             }
 
         }

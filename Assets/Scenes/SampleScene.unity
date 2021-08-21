@@ -399,25 +399,31 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   fps: 10
-  tileType: 0
-  isDijkstra: 0
+  randomFillPercent: 57
   width: 64
   height: 64
   dungeonMinSize: 0
   iterations: 3
   iterationCount: 0
   iterationMax: 240
+  isDijkstra: 0
   seed: 10
   useRandomSeed: 1
-  randomFillPercent: 57
   foregroundGrid: {fileID: 1065474955}
+  foregroundTiles: {fileID: 1725085576}
+  backgroundTiles: {fileID: 2070962272}
   wallTile: {fileID: 11400000, guid: eada6f849c767724abf93860ca9323d5, type: 2}
   floorTile: {fileID: 11400000, guid: e4c64e38919949d4e825321f954923b4, type: 2}
   oreIndicator: {fileID: 11400000, guid: 6bf4701704c94ea4ab6f996bcd14524b, type: 2}
   enemyIndicator: {fileID: 11400000, guid: 56c80ac8604ff7d4a966374d7f2429b3, type: 2}
   playerIndicator: {fileID: 11400000, guid: d3d0cebef88f55c4e93faad1bb5e2766, type: 2}
-  foregroundTiles: {fileID: 1725085576}
-  backgroundTiles: {fileID: 2070962272}
+  tileType: 0
+  enemyMax: 0
+  oreMax: 100
+  enemySpawnMin: 0
+  enemySpawnMax: 0
+  oreSpawnMin: 0
+  oreSpawnMax: 100
 --- !u!4 &2022092936
 Transform:
   m_ObjectHideFlags: 0
