@@ -400,9 +400,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   fps: 10
   randomFillPercent: 57
-  width: 64
-  height: 64
-  dungeonMinSize: 0
+  width: 128
+  height: 128
+  dungeonMinSize: 100
   iterations: 3
   iterationCount: 0
   iterationMax: 240
@@ -418,12 +418,14 @@ MonoBehaviour:
   enemyIndicator: {fileID: 11400000, guid: 56c80ac8604ff7d4a966374d7f2429b3, type: 2}
   playerIndicator: {fileID: 11400000, guid: d3d0cebef88f55c4e93faad1bb5e2766, type: 2}
   tileType: 0
-  enemyMax: 0
-  oreMax: 100
-  enemySpawnMin: 0
-  enemySpawnMax: 0
-  oreSpawnMin: 0
-  oreSpawnMax: 100
+  enemyCount: 100
+  oreCount: 0
+  enemyMax: 142
+  oreMax: 366
+  enemySpawnMin: 100
+  enemySpawnMax: 150
+  oreSpawnMin: 76
+  oreSpawnMax: 150
 --- !u!4 &2022092936
 Transform:
   m_ObjectHideFlags: 0

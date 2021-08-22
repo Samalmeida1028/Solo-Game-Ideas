@@ -10,60 +10,71 @@ public class Generation : MonoBehaviour
 
     float counter;
 
-[Header("Generation Settings")]
-
+    [Header("Generation Settings")]
     [Range(0, 100)]
     public int randomFillPercent;
 
-    public int 
-        width,
-        height,
-        dungeonMinSize,
-        iterations,
-        iterationCount,
-        iterationMax;
+    public int
+
+            width,
+            height,
+            dungeonMinSize,
+            iterations,
+            iterationCount,
+            iterationMax;
 
     public bool isDijkstra;
 
     public string seed;
 
     public bool useRandomSeed;
-    [Space(100)]
+    public int[,]
 
+            noiseMap,
+            cellMap,
+            mapSteps,
+            dijkstraMapPlayerPos;
 
-    public int[,] 
-    
-        noiseMap,
-        cellMap,
-        mapSteps,
-        dijkstraMapPlayerPos;
-
-[Header("Tile Map Objects")]
+    [Header("Tile Map Objects")]
     public Grid foregroundGrid;
+
     public Tilemap foregroundTiles;
+
     public Tilemap backgroundTiles;
+
     public Tile
-        wallTile,
-        floorTile,
-        oreIndicator,
-        enemyIndicator,
-        playerIndicator;
+
+            wallTile,
+            floorTile,
+            oreIndicator,
+            enemyIndicator,
+            playerIndicator;
+
     public int tileType;
 
+    [Header("Spawner Settings")]
+    [SerializeField]
+    int enemyCount;
 
+    [SerializeField]
+    int oreCount;
 
-[Header("Spawner Settings")]
-    [Range(0, 100)]
+    [Range(0, 500)]
     public int enemyMax;
-    [Range(0, 100)]
+
+    [Range(0, 500)]
     public int oreMax;
+
     [Range(0, 100)]
     public int enemySpawnMin;
-    [Range(0, 100)]
+
+    [Range(0, 150)]
     public int enemySpawnMax;
+
     [Range(0, 100)]
     public int oreSpawnMin;
-    [Range(0, 100)]
+
+    [Range(0, 150)]
     public int oreSpawnMax;
 
     void Start()
@@ -71,6 +82,19 @@ public class Generation : MonoBehaviour
         fps = 1 / fps;
         iterationCount = iterations;
         //GenerateMap();
+    }
+
+    struct Coord
+    {
+        public int tileX;
+
+        public int tileY;
+
+        public Coord(int x, int y)
+        {
+            tileX = x;
+            tileY = y;
+        }
     }
 
     void FixedUpdate()
@@ -116,21 +140,6 @@ public class Generation : MonoBehaviour
         {
             iterations -= 1;
         }
-
-        /*else
-        {
-            if(counter>fps){
-                counter = 0;
-            SmoothMap();
-            iterations += 1;
-            }
-        }
-
-        if(iterations>iterationMax){
-            iterations = 0;
-            GenerateMap();
-
-        }*/
     }
 
     void GenerateMap()
@@ -140,7 +149,7 @@ public class Generation : MonoBehaviour
 
         noiseMap = new int[width, height];
         cellMap = new int[width, height];
-        dijkstraMapPlayerPos = new int[width,height];
+        dijkstraMapPlayerPos = new int[width, height];
         mapSteps = new int[width, height];
 
         RandomFillMap();
@@ -159,23 +168,91 @@ public class Generation : MonoBehaviour
         validRooms[0].isMainRoom = true;
         validRooms[0].isAccessibleFromMain = true;
         Coord startPos = GenerateRandomStart(validRooms[0].roomTiles);
-        GenerateStepsFromStart(startPos.tileX, startPos.tileY,false);
+        GenerateStepsFromStart(startPos.tileX, startPos.tileY, false);
         ConnectClosestRoom (validRooms);
-        GenerateStepsFromStart(startPos.tileX, startPos.tileY,true);
-        
+        GenerateStepsFromStart(startPos.tileX, startPos.tileY, true);
+
         List<List<Coord>> wallRegions = GetRegions(1);
         List<List<Coord>> floorMap = GetRegions(0);
-        foreach(List<Coord> wallRegion in wallRegions){
-            foreach(Coord wall in wallRegion){
-                dijkstraMapPlayerPos[wall.tileX,wall.tileY]=Int32.MaxValue;
+        foreach (List<Coord> wallRegion in wallRegions)
+        {
+            foreach (Coord wall in wallRegion)
+            {
+                dijkstraMapPlayerPos[wall.tileX, wall.tileY] = Int32.MaxValue;
             }
         }
         TilePlacer();
         OrePlacer();
-        EnemySpawner(floorMap,startPos);
+        EnemySpawner (floorMap, startPos);
         //foregroundTiles.RefreshAllTiles();
+    }
 
+    void RandomFillMap()
+    {
+        if (useRandomSeed)
+        {
+            float random = UnityEngine.Random.Range(0f, 1000f);
+            seed = (Time.time + (int) random * random).ToString();
+        }
+        System.Random prng = new System.Random(seed.GetHashCode());
 
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                if (x == 0 || x == width - 1 || y == 0 || y == height - 1)
+                {
+                    noiseMap[x, y] = 1;
+                }
+                else
+                    noiseMap[x, y] =
+                        (prng.Next(0, 100) < randomFillPercent) ? 1 : 0;
+            }
+        }
+    }
+
+    void SmoothMap()
+    {
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                int neighborWallCount = GetSurroundingWallCount(x, y);
+                if (neighborWallCount > 4)
+                {
+                    cellMap[x, y] = 1;
+                }
+                else
+                {
+                    cellMap[x, y] = 0;
+                }
+            }
+        }
+        noiseMap = cellMap;
+        cellMap = new int[width, height];
+    }
+
+    List<List<Coord>> GetRegions(int tileType)
+    {
+        List<List<Coord>> regions = new List<List<Coord>>();
+        int[,] mapFlags = new int[width, height];
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                if (mapFlags[x, y] == 0 && noiseMap[x, y] == tileType)
+                {
+                    List<Coord> newRegion = GetRegionTiles(x, y);
+                    regions.Add (newRegion);
+                    foreach (Coord tile in newRegion)
+                    {
+                        mapFlags[tile.tileX, tile.tileY] = 1;
+                    }
+                }
+            }
+        }
+
+        return regions;
     }
 
     List<List<Coord>> FindValidRegions(int tileType, int minSize)
@@ -226,29 +303,6 @@ public class Generation : MonoBehaviour
         }
     }
 
-    List<List<Coord>> GetRegions(int tileType)
-    {
-        List<List<Coord>> regions = new List<List<Coord>>();
-        int[,] mapFlags = new int[width, height];
-        for (int x = 0; x < width; x++)
-        {
-            for (int y = 0; y < height; y++)
-            {
-                if (mapFlags[x, y] == 0 && noiseMap[x, y] == tileType)
-                {
-                    List<Coord> newRegion = GetRegionTiles(x, y);
-                    regions.Add (newRegion);
-                    foreach (Coord tile in newRegion)
-                    {
-                        mapFlags[tile.tileX, tile.tileY] = 1;
-                    }
-                }
-            }
-        }
-
-        return regions;
-    }
-
     List<Coord> GetRegionTiles(int startX, int startY)
     {
         List<Coord> tiles = new List<Coord>();
@@ -284,169 +338,148 @@ public class Generation : MonoBehaviour
         return tiles;
     }
 
-    void RandomFillMap()
+    class Room : IComparable<Room>
     {
-        if (useRandomSeed)
-        {
-            float random = UnityEngine.Random.Range(0f, 1000f);
-            seed = (Time.time + (int) random * random).ToString();
-        }
-        System.Random prng = new System.Random(seed.GetHashCode());
+        public bool isAccessibleFromMain;
 
-        for (int x = 0; x < width; x++)
+        public bool isMainRoom;
+
+        public List<Coord> roomTiles;
+
+        public List<Coord> edgeTiles;
+
+        public List<Room> connectedRooms;
+
+        public int roomSize;
+
+        public Room()
         {
-            for (int y = 0; y < height; y++)
+        }
+
+        public Room(List<Coord> tiles, int[,] map)
+        {
+            roomTiles = tiles;
+            roomSize = tiles.Count;
+            connectedRooms = new List<Room>();
+            edgeTiles = new List<Coord>();
+            foreach (Coord tile in roomTiles)
             {
-                if (x == 0 || x == width - 1 || y == 0 || y == height - 1)
+                for (int x = tile.tileX - 1; x <= tile.tileX + 1; x++)
                 {
-                    noiseMap[x, y] = 1;
+                    for (int y = tile.tileY - 1; y <= tile.tileY + 1; y++)
+                    {
+                        if (x == tile.tileX || y == tile.tileY)
+                        {
+                            if (map[x, y] == 1)
+                            {
+                                edgeTiles.Add (tile);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        public void SetAccessibleToMain()
+        {
+            if (!isAccessibleFromMain)
+            {
+                isAccessibleFromMain = true;
+                foreach (Room connectedRoom in connectedRooms)
+                {
+                    isAccessibleFromMain = true;
+                }
+            }
+        }
+
+        public int CompareTo(Room otherRoom)
+        {
+            return otherRoom.roomSize.CompareTo(roomSize);
+        }
+
+        public static void ConnectRooms(Room roomA, Room roomB)
+        {
+            if (roomA.isAccessibleFromMain)
+            {
+                roomB.SetAccessibleToMain();
+            }
+            else if (roomB.isAccessibleFromMain)
+            {
+                roomA.SetAccessibleToMain();
+            }
+
+            roomA.connectedRooms.Add (roomB);
+            roomB.connectedRooms.Add (roomA);
+        }
+
+        public bool isConnected(Room otherRoom)
+        {
+            return connectedRooms.Contains(otherRoom);
+        }
+    }
+
+    List<Coord> GetLine(Coord tileA, Coord tileB)
+    {
+        List<Coord> line = new List<Coord>();
+        int x = tileA.tileX;
+        int y = tileA.tileY;
+
+        int dx = tileB.tileX - x;
+        int dy = tileB.tileY - y;
+
+        bool inverted = false;
+        int step = Math.Sign(dx);
+        int gradientStep = Math.Sign(dy);
+
+        int longest = Math.Abs(dx);
+        int shortest = Math.Abs(dy);
+
+        if (longest < shortest)
+        {
+            inverted = true;
+            longest = Math.Abs(dy);
+            shortest = Math.Abs(dx);
+            step = Math.Sign(dy);
+            gradientStep = Math.Sign(dx);
+        }
+
+        int gradientAccumulation = longest / 2;
+        for (int i = 0; i < longest; i++)
+        {
+            line.Add(new Coord(x, y));
+            if (inverted)
+            {
+                y += step;
+            }
+            else
+            {
+                x += step;
+            }
+            gradientAccumulation += shortest;
+            if (gradientAccumulation >= longest)
+            {
+                if (inverted)
+                {
+                    x += gradientStep;
                 }
                 else
-                    noiseMap[x, y] =
-                        (prng.Next(0, 100) < randomFillPercent) ? 1 : 0;
+                    y += gradientStep;
+                gradientAccumulation -= longest;
             }
         }
+
+        return line;
     }
 
-    void OnDrawGizmos()
+    void CreatePassage(Room roomA, Room roomB, Coord tileA, Coord tileB)
     {
-        float range = 0;
-        Color gradient = new Color();
-        if (noiseMap != null)
+        Room.ConnectRooms (roomA, roomB);
+
+        //Debug.DrawLine(CoordToPos(tileA), CoordToPos(tileB), Color.black, 100f);
+        List<Coord> line = GetLine(tileA, tileB);
+        foreach (Coord c in line)
         {
-            for (int x = 0; x < width; x++)
-            {
-                for (int y = 0; y < height; y++)
-                {
-                    Gizmos.color =
-                        (noiseMap[x, y] == 1) ? Color.blue : Color.green;
-                    Vector3 pos =
-                        new Vector3(-width / 2 + x + .5f,
-                            -height / 2 + y + .5f,
-                            0);
-                    if(!isDijkstra){
-                    range -= mapSteps[x, y] / 300;
-                    }
-                    else  range -= dijkstraMapPlayerPos[x, y] / 300;
-
-
-                    if (Math.Abs(range) < 5)
-                    {
-                        Gizmos.color  = Color.white;
-                    }
-                    
-                    else if (Math.Abs(range) >= Mathf.Abs(5) && Math.Abs(range) < Mathf.Abs(10))
-                    {
-                         Gizmos.color  = Color.magenta;
-                    }
-                    else if (Math.Abs(range) >= Mathf.Abs(10) && Math.Abs(range) < Mathf.Abs(15))
-                    {
-                         Gizmos.color  = Color.red;
-                    }
-                    else if (Math.Abs(range) >= Mathf.Abs(15) && Math.Abs(range) < Mathf.Abs(20))
-                    {
-                         Gizmos.color  = Color.yellow;
-                    }
-                    else if (Math.Abs(range) >= Mathf.Abs(20) && Math.Abs(range) < Mathf.Abs(25))
-                    {
-                         Gizmos.color = Color.green;
-                    }
-                    else if (Math.Abs(range) >= Mathf.Abs(25) && Math.Abs(range) < Mathf.Abs(30))
-                    {
-                         Gizmos.color = Color.cyan;
-                    }
-                    else if (Math.Abs(range) >= Mathf.Abs(30) && Math.Abs(range) < Mathf.Abs(35))
-                    {
-                         Gizmos.color = Color.gray;
-                    }
-                    else if (Math.Abs(range) >= Mathf.Abs(35) && Math.Abs(range) < Mathf.Abs(60))
-                    {
-                         Gizmos.color = Color.black;
-                    }
-                    //gradient.g -= mapSteps[x,y]/1000;
-                    //gradient.b -= mapSteps[x,y]/1000;
-                    //Debug.Log(mapSteps[x,y]);
-                    if(!isDijkstra){
-                    if (mapSteps[x, y] == 0)
-                    {
-                        Gizmos.color = Color.red;
-                        Gizmos.DrawCube(pos, Vector3.one * 1.5f);
-                    }
-                    }
-                    else{
-                        if (dijkstraMapPlayerPos[x, y] == 0)
-                    {
-                        Gizmos.color = Color.red;
-                        Gizmos.DrawCube(pos, Vector3.one * 1.5f);
-                    }
-
-                    }
-                    Gizmos.DrawCube(pos, Vector3.one / 3);
-                    range = 0;
-                }
-            }
-        }
-    }
-
-    void SmoothMap()
-    {
-        for (int x = 0; x < width; x++)
-        {
-            for (int y = 0; y < height; y++)
-            {
-                int neighborWallCount = GetSurroundingWallCount(x, y);
-                if (neighborWallCount > 4)
-                {
-                    cellMap[x, y] = 1;
-                }
-                else
-                {
-                    cellMap[x, y] = 0;
-                }
-            }
-        }
-        noiseMap = cellMap;
-        cellMap = new int[width, height];
-    }
-
-    bool IsInMapRange(int x, int y)
-    {
-        return x >= 0 && x < width && y >= 0 && y < height;
-    }
-
-    int GetSurroundingWallCount(int gridX, int gridY)
-    {
-        int wallCount = 0;
-        for (int neighborX = gridX - 1; neighborX <= gridX + 1; neighborX++)
-        {
-            for (int neighborY = gridY - 1; neighborY <= gridY + 1; neighborY++)
-            {
-                if (IsInMapRange(neighborX, neighborY))
-                {
-                    if (neighborX != gridX || neighborY != gridY)
-                    {
-                        wallCount += noiseMap[neighborX, neighborY];
-                    }
-                }
-                else
-                {
-                    wallCount++;
-                }
-            }
-        }
-        return wallCount;
-    }
-
-    struct Coord
-    {
-        public int tileX;
-
-        public int tileY;
-
-        public Coord(int x, int y)
-        {
-            tileX = x;
-            tileY = y;
+            DrawCircle(c, 2);
         }
     }
 
@@ -548,15 +581,305 @@ public class Generation : MonoBehaviour
         }
     }
 
-    void CreatePassage(Room roomA, Room roomB, Coord tileA, Coord tileB)
+    int GetSurroundingWallCount(int gridX, int gridY)
     {
-        Room.ConnectRooms (roomA, roomB);
-
-        //Debug.DrawLine(CoordToPos(tileA), CoordToPos(tileB), Color.black, 100f);
-        List<Coord> line = GetLine(tileA, tileB);
-        foreach (Coord c in line)
+        int wallCount = 0;
+        for (int neighborX = gridX - 1; neighborX <= gridX + 1; neighborX++)
         {
-            DrawCircle(c, 2);
+            for (int neighborY = gridY - 1; neighborY <= gridY + 1; neighborY++)
+            {
+                if (IsInMapRange(neighborX, neighborY))
+                {
+                    if (neighborX != gridX || neighborY != gridY)
+                    {
+                        wallCount += noiseMap[neighborX, neighborY];
+                    }
+                }
+                else
+                {
+                    wallCount++;
+                }
+            }
+        }
+        return wallCount;
+    }
+
+    Coord GenerateRandomStart(List<Coord> mainRoom)
+    {
+        Coord startPos = mainRoom[UnityEngine.Random.Range(0, mainRoom.Count)];
+        return startPos;
+    }
+
+    void GenerateStepsFromStart(int startX, int startY, bool dijkStra)
+    {
+        Queue<Coord> queue = new Queue<Coord>();
+        int count = 1;
+        queue.Enqueue(new Coord(startX, startY));
+        int[,] mapFlags = new int[width, height];
+
+        mapFlags[startX, startY] = 1;
+        mapSteps[startX, startY] = 0;
+        if (dijkStra)
+        {
+            dijkstraMapPlayerPos[startX, startY] = 0;
+        }
+
+        while (queue.Count > 0)
+        {
+            Coord tile = queue.Dequeue();
+            for (int x = tile.tileX - 1; x <= tile.tileX + 1; x++)
+            {
+                for (int y = tile.tileY - 1; y <= tile.tileY + 1; y++)
+                {
+                    if (!dijkStra)
+                    {
+                        if (
+                            IsInMapRange(x, y) &&
+                            (y == tile.tileY || x == tile.tileX)
+                        )
+                        {
+                            if (mapFlags[x, y] == 0)
+                            {
+                                mapSteps[x, y] = count;
+                                queue.Enqueue(new Coord(x, y));
+                                mapFlags[x, y] = 1;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (
+                            IsInMapRange(x, y) &&
+                            (y == tile.tileY || x == tile.tileX)
+                        )
+                        {
+                            if (
+                                mapFlags[x, y] == 0 &&
+                                noiseMap[x, y] == noiseMap[startX, startY]
+                            )
+                            {
+                                dijkstraMapPlayerPos[x, y] = count;
+                                queue.Enqueue(new Coord(x, y));
+                                mapFlags[x, y] = 1;
+                            }
+                        }
+                    }
+                }
+            }
+            count += 1;
+        }
+    }
+
+    void TilePlacer()
+    {
+        for (int tileX = 0; tileX < noiseMap.GetLength(0); tileX++)
+        {
+            for (int tileY = 0; tileY < noiseMap.GetLength(0); tileY++)
+            {
+                if (noiseMap[tileX, tileY] == 0)
+                {
+                    backgroundTiles
+                        .SetTile(new Vector3Int(-width / 2 + tileX,
+                            -height / 2 + tileY,
+                            0),
+                        floorTile);
+                }
+                if (noiseMap[tileX, tileY] == 1)
+                {
+                    foregroundTiles
+                        .SetTile(new Vector3Int(-width / 2 + tileX,
+                            -height / 2 + tileY,
+                            0),
+                        wallTile);
+                }
+            }
+        }
+    }
+//!Need to flood fill with orePlacer and EnemySpawner
+    void OrePlacer()
+    {
+        oreCount = 0;
+        for (int tileX = 0; tileX < noiseMap.GetLength(0); tileX++)
+        {
+            for (int tileY = 0; tileY < noiseMap.GetLength(0); tileY++)
+            {
+                int spawnChance =
+                    (
+                    int
+                    )(UnityEngine.Random.Range(.1f, 1f) *
+                    (
+                    Mathf
+                        .Pow(mapSteps[tileX, tileY],
+                        UnityEngine.Random.Range(1f, 1.2f)) /
+                    500
+                    ));
+                if (
+                    oreCount < oreMax &&
+                    (spawnChance < oreSpawnMin ||
+                    spawnChance > oreSpawnMax) &&
+                    noiseMap[tileX, tileY] == 1
+                )
+                {
+                    foregroundTiles
+                        .SetTile(new Vector3Int(-width / 2 + tileX,
+                            -height / 2 + tileY,
+                            0),
+                        oreIndicator);
+                    oreCount += 1;
+                }
+            }
+        }
+    }
+
+    void EnemySpawner(List<List<Coord>> floorMap, Coord startPos)
+    {
+        enemyCount = 0;
+        List<Coord> floor = floorMap[0];
+        foreach (Coord floorTile in floor)
+        {
+            if (
+                floorTile.tileX == startPos.tileX &&
+                floorTile.tileY == startPos.tileY
+            )
+            {
+                foregroundTiles
+                    .SetTile(new Vector3Int(-width / 2 + floorTile.tileX,
+                        -height / 2 + floorTile.tileY,
+                        0),
+                    playerIndicator);
+            }
+            int spawnChance =
+                (
+                int
+                )(UnityEngine.Random.Range(0f, .1f) *
+                (
+                Mathf
+                    .Pow(dijkstraMapPlayerPos[floorTile.tileX, floorTile.tileY],
+                    UnityEngine.Random.Range(1f, 2f))
+                ) /
+                1000);
+            if (
+                enemyCount < enemyMax &&
+                spawnChance >= enemySpawnMin &&
+                spawnChance < enemySpawnMax
+            )
+            {
+                foregroundTiles
+                    .SetTile(new Vector3Int(-width / 2 + floorTile.tileX,
+                        -height / 2 + floorTile.tileY,
+                        0),
+                    enemyIndicator);
+                enemyCount += 1;
+            }
+        }
+    }
+
+    public void FloodTilePlacer(int tileType, Coord startPos, bool followsDjikstra, bool followsSteps){
+
+//TODO make this take a tile type and fill it with tiles from the player starting position, either using Djikstra map or the step count from player that was generated
+
+    }
+
+    void OnDrawGizmos()
+    {
+        float range = 0;
+        Color gradient = new Color();
+        if (noiseMap != null)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    Gizmos.color =
+                        (noiseMap[x, y] == 1) ? Color.blue : Color.green;
+                    Vector3 pos =
+                        new Vector3(-width / 2 + x + .5f,
+                            -height / 2 + y + .5f,
+                            0);
+                    if (!isDijkstra)
+                    {
+                        range -= mapSteps[x, y] / 300;
+                    }
+                    else
+                        range -= dijkstraMapPlayerPos[x, y] / 300;
+
+                    if (Math.Abs(range) < 5)
+                    {
+                        Gizmos.color = Color.white;
+                    }
+                    else if (
+                        Math.Abs(range) >= Mathf.Abs(5) &&
+                        Math.Abs(range) < Mathf.Abs(10)
+                    )
+                    {
+                        Gizmos.color = Color.magenta;
+                    }
+                    else if (
+                        Math.Abs(range) >= Mathf.Abs(10) &&
+                        Math.Abs(range) < Mathf.Abs(15)
+                    )
+                    {
+                        Gizmos.color = Color.red;
+                    }
+                    else if (
+                        Math.Abs(range) >= Mathf.Abs(15) &&
+                        Math.Abs(range) < Mathf.Abs(20)
+                    )
+                    {
+                        Gizmos.color = Color.yellow;
+                    }
+                    else if (
+                        Math.Abs(range) >= Mathf.Abs(20) &&
+                        Math.Abs(range) < Mathf.Abs(25)
+                    )
+                    {
+                        Gizmos.color = Color.green;
+                    }
+                    else if (
+                        Math.Abs(range) >= Mathf.Abs(25) &&
+                        Math.Abs(range) < Mathf.Abs(30)
+                    )
+                    {
+                        Gizmos.color = Color.cyan;
+                    }
+                    else if (
+                        Math.Abs(range) >= Mathf.Abs(30) &&
+                        Math.Abs(range) < Mathf.Abs(35)
+                    )
+                    {
+                        Gizmos.color = Color.gray;
+                    }
+                    else if (
+                        Math.Abs(range) >= Mathf.Abs(35) &&
+                        Math.Abs(range) < Mathf.Abs(60)
+                    )
+                    {
+                        Gizmos.color = Color.black;
+                    }
+
+                    //gradient.g -= mapSteps[x,y]/1000;
+                    //gradient.b -= mapSteps[x,y]/1000;
+                    //Debug.Log(mapSteps[x,y]);
+                    if (!isDijkstra)
+                    {
+                        if (mapSteps[x, y] == 0)
+                        {
+                            Gizmos.color = Color.red;
+                            Gizmos.DrawCube(pos, Vector3.one * 1.5f);
+                        }
+                    }
+                    else
+                    {
+                        if (dijkstraMapPlayerPos[x, y] == 0)
+                        {
+                            Gizmos.color = Color.red;
+                            Gizmos.DrawCube(pos, Vector3.one * 1.5f);
+                        }
+                    }
+                    Gizmos.DrawCube(pos, Vector3.one / 3);
+                    range = 0;
+                }
+            }
         }
     }
 
@@ -579,59 +902,6 @@ public class Generation : MonoBehaviour
         }
     }
 
-    List<Coord> GetLine(Coord tileA, Coord tileB)
-    {
-        List<Coord> line = new List<Coord>();
-        int x = tileA.tileX;
-        int y = tileA.tileY;
-
-        int dx = tileB.tileX - x;
-        int dy = tileB.tileY - y;
-
-        bool inverted = false;
-        int step = Math.Sign(dx);
-        int gradientStep = Math.Sign(dy);
-
-        int longest = Math.Abs(dx);
-        int shortest = Math.Abs(dy);
-
-        if (longest < shortest)
-        {
-            inverted = true;
-            longest = Math.Abs(dy);
-            shortest = Math.Abs(dx);
-            step = Math.Sign(dy);
-            gradientStep = Math.Sign(dx);
-        }
-
-        int gradientAccumulation = longest / 2;
-        for (int i = 0; i < longest; i++)
-        {
-            line.Add(new Coord(x, y));
-            if (inverted)
-            {
-                y += step;
-            }
-            else
-            {
-                x += step;
-            }
-            gradientAccumulation += shortest;
-            if (gradientAccumulation >= longest)
-            {
-                if (inverted)
-                {
-                    x += gradientStep;
-                }
-                else
-                    y += gradientStep;
-                gradientAccumulation -= longest;
-            }
-        }
-
-        return line;
-    }
-
     Vector3 CoordToPos(Coord tile)
     {
         return new Vector3(-width / 2 + .5f + tile.tileX,
@@ -639,190 +909,8 @@ public class Generation : MonoBehaviour
             0);
     }
 
-    class Room : IComparable<Room>
+    bool IsInMapRange(int x, int y)
     {
-        public bool isAccessibleFromMain;
-
-        public bool isMainRoom;
-
-        public List<Coord> roomTiles;
-
-        public List<Coord> edgeTiles;
-
-        public List<Room> connectedRooms;
-
-        public int roomSize;
-
-        public Room()
-        {
-        }
-
-        public Room(List<Coord> tiles, int[,] map)
-        {
-            roomTiles = tiles;
-            roomSize = tiles.Count;
-            connectedRooms = new List<Room>();
-            edgeTiles = new List<Coord>();
-            foreach (Coord tile in roomTiles)
-            {
-                for (int x = tile.tileX - 1; x <= tile.tileX + 1; x++)
-                {
-                    for (int y = tile.tileY - 1; y <= tile.tileY + 1; y++)
-                    {
-                        if (x == tile.tileX || y == tile.tileY)
-                        {
-                            if (map[x, y] == 1)
-                            {
-                                edgeTiles.Add (tile);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        public void SetAccessibleToMain()
-        {
-            if (!isAccessibleFromMain)
-            {
-                isAccessibleFromMain = true;
-                foreach (Room connectedRoom in connectedRooms)
-                {
-                    isAccessibleFromMain = true;
-                }
-            }
-        }
-
-        public int CompareTo(Room otherRoom)
-        {
-            return otherRoom.roomSize.CompareTo(roomSize);
-        }
-
-        public static void ConnectRooms(Room roomA, Room roomB)
-        {
-            if (roomA.isAccessibleFromMain)
-            {
-                roomB.SetAccessibleToMain();
-            }
-            else if (roomB.isAccessibleFromMain)
-            {
-                roomA.SetAccessibleToMain();
-            }
-
-            roomA.connectedRooms.Add (roomB);
-            roomB.connectedRooms.Add (roomA);
-        }
-
-        public bool isConnected(Room otherRoom)
-        {
-            return connectedRooms.Contains(otherRoom);
-        }
+        return x >= 0 && x < width && y >= 0 && y < height;
     }
-
-    Coord GenerateRandomStart(List<Coord> mainRoom)
-    {
-        Coord startPos = mainRoom[UnityEngine.Random.Range(0, mainRoom.Count)];
-        return startPos;
-    }
-
-    void GenerateStepsFromStart(int startX, int startY, bool dijkStra)
-    {
-        Queue<Coord> queue = new Queue<Coord>();
-        int count = 1;
-        queue.Enqueue(new Coord(startX, startY));
-        int[,] mapFlags = new int[width, height];
-
-        mapFlags[startX, startY] = 1;
-        mapSteps[startX, startY] = 0;
-        if(dijkStra){
-            dijkstraMapPlayerPos[startX,startY] = 0;
-        }
-
-        while (queue.Count > 0)
-        {
-            Coord tile = queue.Dequeue();
-            for (int x = tile.tileX - 1; x <= tile.tileX + 1; x++)
-            {
-                for (int y = tile.tileY - 1; y <= tile.tileY + 1; y++)
-                {
-                    if(!dijkStra){
-                    if (
-                        IsInMapRange(x, y) &&
-                        (y == tile.tileY || x == tile.tileX)
-                    )
-                    {
-                        if (mapFlags[x, y] == 0)
-                        {
-                            mapSteps[x, y] = count;
-                            queue.Enqueue(new Coord(x, y));
-                            mapFlags[x, y] = 1;
-                        }
-                    }
-                    }
-                    else{
-                        if (
-                        IsInMapRange(x, y) &&
-                        (y == tile.tileY || x == tile.tileX)
-                    )
-                    {
-                        if (mapFlags[x, y] == 0 && noiseMap[x,y] == noiseMap[startX,startY])
-                        {
-                            dijkstraMapPlayerPos[x, y] = count;
-                            queue.Enqueue(new Coord(x, y));
-                            mapFlags[x, y] = 1;
-                        }
-
-                    }
-
-                    }
-                }
-            }
-            count += 1;
-        }
-    }
-
-    void TilePlacer(){
-        for(int tileX = 0; tileX < noiseMap.GetLength(0); tileX++){
-            for(int tileY= 0; tileY< noiseMap.GetLength(0); tileY++){
-            if(noiseMap[tileX,tileY] == 0){
-                backgroundTiles.SetTile(new Vector3Int(-width / 2 + tileX,-height / 2 + tileY,0),floorTile);
-            }
-            if(noiseMap[tileX,tileY] == 1){
-                foregroundTiles.SetTile(new Vector3Int(-width / 2 + tileX,-height / 2 + tileY,0),wallTile);
-            }
-            }
-        }
-    }
-
-    void OrePlacer(){
-        int oreCount = 0;
-        for(int tileX = 0; tileX < noiseMap.GetLength(0); tileX++){
-            for(int tileY= 0; tileY< noiseMap.GetLength(0); tileY++){
-                        int spawnChance = (int)(UnityEngine.Random.Range(0f,1f) * (Mathf.Pow(mapSteps[tileX,tileY],UnityEngine.Random.Range(1f,1.2f))/500));
-                        if(oreCount<oreMax && spawnChance>oreSpawnMin && spawnChance<oreSpawnMax && noiseMap[tileX,tileY] == 1){
-                            foregroundTiles.SetTile(new Vector3Int(-width / 2 + tileX,-height / 2 + tileY,0),oreIndicator);
-                            oreCount += 1;
-                        }
-                    }
-                }
-
-    }
-
-    void EnemySpawner(List<List<Coord>> floorMap, Coord startPos){
-        int enemyCount = 0;
-        List<Coord> floor = floorMap[0];
-        foreach ( Coord floorTile in floor)
-        {
-            if(floorTile.tileX == startPos.tileX && floorTile.tileY == startPos.tileY){
-                foregroundTiles.SetTile(new Vector3Int(-width / 2 + floorTile.tileX,-height / 2 + floorTile.tileY,0),playerIndicator);
-            }
-            int spawnChance = (int)(UnityEngine.Random.Range(0f,.1f) * (Mathf.Pow(dijkstraMapPlayerPos[floorTile.tileX,floorTile.tileY],UnityEngine.Random.Range(1f,2f)))/1000);
-            if(enemyCount < enemyMax && spawnChance>=enemySpawnMin && spawnChance<enemySpawnMax){
-                foregroundTiles.SetTile(new Vector3Int(-width / 2 + floorTile.tileX,-height / 2 + floorTile.tileY,0),enemyIndicator);
-                enemyCount += 1;
-            }
-
-        }
-    }
-
 }
