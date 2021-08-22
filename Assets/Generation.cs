@@ -27,7 +27,7 @@ public class Generation : MonoBehaviour
 
     public string seed;
 
-    public bool useRandomSeed;
+    public bool useRandomMapSeed;
     public int[,]
 
             noiseMap,
@@ -164,6 +164,7 @@ public class Generation : MonoBehaviour
         }
         FillInvalidRegions (tileType, dungeonMinSize);
         List<List<Coord>> regions = GetRegions(tileType);
+        Debug.Log(regions.Count);
         List<Room> validRooms = new List<Room>();
         foreach (List<Coord> Room in regions)
         {
@@ -189,12 +190,11 @@ public class Generation : MonoBehaviour
         TilePlacer();
         OrePlacer(startPos);
         EnemySpawner (startPos);
-        //foregroundTiles.RefreshAllTiles();
     }
 
     void RandomFillMap()
     {
-        if (useRandomSeed)
+        if (useRandomMapSeed)
         {
             float random = UnityEngine.Random.Range(0f, 1000f);
             seed = (Time.time + (int) random * random).ToString();
@@ -479,8 +479,6 @@ public class Generation : MonoBehaviour
     void CreatePassage(Room roomA, Room roomB, Coord tileA, Coord tileB)
     {
         Room.ConnectRooms (roomA, roomB);
-
-        //Debug.DrawLine(CoordToPos(tileA), CoordToPos(tileB), Color.black, 100f);
         List<Coord> line = GetLine(tileA, tileB);
         foreach (Coord c in line)
         {
@@ -700,7 +698,6 @@ public class Generation : MonoBehaviour
             }
         }
     }
-//!Need to flood fill with orePlacer and EnemySpawner
     void OrePlacer(Coord startPos)
     {
         oreCount = 0;
@@ -723,7 +720,6 @@ public class Generation : MonoBehaviour
                             {
                                 int spawnChance =(int)((UnityEngine.Random.Range(.1f, 2f) *(mapSteps[tile.tileX, tile.tileY] + 1 ))/UnityEngine.Random.Range(100,800));
                                 if(oreCount < oreMax && (spawnChance > oreSpawnMin && spawnChance < oreSpawnMax) && noiseMap[x, y] == 1){
-                                Debug.Log(spawnChance + "::" + oreSpawnMin + " or " + oreSpawnMax);
                                 foregroundTiles.SetTile(new Vector3Int(-width / 2 + tile.tileX,-height / 2 + tile.tileY,0),oreIndicator);
                                 oreCount +=1;
                                 }
@@ -855,7 +851,6 @@ public class Generation : MonoBehaviour
 
                     //gradient.g -= mapSteps[x,y]/1000;
                     //gradient.b -= mapSteps[x,y]/1000;
-                    //Debug.Log(mapSteps[x,y]);
                     if (!isDijkstra)
                     {
                         if (mapSteps[x, y] == 0)

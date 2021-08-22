@@ -402,7 +402,7 @@ MonoBehaviour:
   randomFillPercent: 57
   width: 128
   height: 128
-  dungeonMinSize: 100
+  dungeonMinSize: 50
   iterations: 3
   iterationCount: 0
   iterationMax: 240
