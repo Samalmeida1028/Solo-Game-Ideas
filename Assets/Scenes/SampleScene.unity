@@ -424,8 +424,8 @@ MonoBehaviour:
   oreMax: 366
   enemySpawnMin: 100
   enemySpawnMax: 150
-  oreSpawnMin: 76
-  oreSpawnMax: 150
+  oreSpawnMin: 0
+  oreSpawnMax: 14
 --- !u!4 &2022092936
 Transform:
   m_ObjectHideFlags: 0

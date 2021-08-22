@@ -53,6 +53,8 @@ public class Generation : MonoBehaviour
     public int tileType;
 
     [Header("Spawner Settings")]
+
+
     [SerializeField]
     int enemyCount;
 
@@ -62,7 +64,7 @@ public class Generation : MonoBehaviour
     [Range(0, 500)]
     public int enemyMax;
 
-    [Range(0, 500)]
+    [Range(0, 5000)]
     public int oreMax;
 
     [Range(0, 100)]
@@ -71,11 +73,14 @@ public class Generation : MonoBehaviour
     [Range(0, 150)]
     public int enemySpawnMax;
 
-    [Range(0, 100)]
+    [Range(0, 200)]
     public int oreSpawnMin;
 
-    [Range(0, 150)]
+    [Range(0, 500)]
     public int oreSpawnMax;
+    
+    List<List<Coord>> floorMap;
+    List<List<Coord>> wallRegions;
 
     void Start()
     {
@@ -172,8 +177,8 @@ public class Generation : MonoBehaviour
         ConnectClosestRoom (validRooms);
         GenerateStepsFromStart(startPos.tileX, startPos.tileY, true);
 
-        List<List<Coord>> wallRegions = GetRegions(1);
-        List<List<Coord>> floorMap = GetRegions(0);
+        wallRegions = GetRegions(1);
+        floorMap = GetRegions(0);
         foreach (List<Coord> wallRegion in wallRegions)
         {
             foreach (Coord wall in wallRegion)
@@ -182,8 +187,8 @@ public class Generation : MonoBehaviour
             }
         }
         TilePlacer();
-        OrePlacer();
-        EnemySpawner (floorMap, startPos);
+        OrePlacer(startPos);
+        EnemySpawner (startPos);
         //foregroundTiles.RefreshAllTiles();
     }
 
@@ -696,89 +701,80 @@ public class Generation : MonoBehaviour
         }
     }
 //!Need to flood fill with orePlacer and EnemySpawner
-    void OrePlacer()
+    void OrePlacer(Coord startPos)
     {
         oreCount = 0;
-        for (int tileX = 0; tileX < noiseMap.GetLength(0); tileX++)
+        Queue<Coord> queue = new Queue<Coord>();
+        queue.Enqueue(startPos);
+        int[,] mapFlags = new int[width, height];
+        mapFlags[startPos.tileX, startPos.tileY] = 1;
+
+         while (queue.Count > 0)
         {
-            for (int tileY = 0; tileY < noiseMap.GetLength(0); tileY++)
+            Coord tile = queue.Dequeue();
+            for (int x = tile.tileX - 1; x <= tile.tileX + 1; x++)
             {
-                int spawnChance =
-                    (
-                    int
-                    )(UnityEngine.Random.Range(.1f, 1f) *
-                    (
-                    Mathf
-                        .Pow(mapSteps[tileX, tileY],
-                        UnityEngine.Random.Range(1f, 1.2f)) /
-                    500
-                    ));
-                if (
-                    oreCount < oreMax &&
-                    (spawnChance < oreSpawnMin ||
-                    spawnChance > oreSpawnMax) &&
-                    noiseMap[tileX, tileY] == 1
-                )
+                for (int y = tile.tileY - 1; y <= tile.tileY + 1; y++)
                 {
-                    foregroundTiles
-                        .SetTile(new Vector3Int(-width / 2 + tileX,
-                            -height / 2 + tileY,
-                            0),
-                        oreIndicator);
-                    oreCount += 1;
+
+                        if (IsInMapRange(x, y))
+                        {
+                            if (mapFlags[x, y] == 0)
+                            {
+                                int spawnChance =(int)((UnityEngine.Random.Range(.1f, 2f) *(mapSteps[tile.tileX, tile.tileY] + 1 ))/UnityEngine.Random.Range(100,800));
+                                if(oreCount < oreMax && (spawnChance > oreSpawnMin && spawnChance < oreSpawnMax) && noiseMap[x, y] == 1){
+                                Debug.Log(spawnChance + "::" + oreSpawnMin + " or " + oreSpawnMax);
+                                foregroundTiles.SetTile(new Vector3Int(-width / 2 + tile.tileX,-height / 2 + tile.tileY,0),oreIndicator);
+                                oreCount +=1;
+                                }
+                                queue.Enqueue(new Coord(x, y));
+                                mapFlags[x, y] = 1;
+
+                            }
+                        }
+                
                 }
             }
         }
     }
 
-    void EnemySpawner(List<List<Coord>> floorMap, Coord startPos)
+    void EnemySpawner(Coord startPos)
     {
         enemyCount = 0;
-        List<Coord> floor = floorMap[0];
-        foreach (Coord floorTile in floor)
+        Queue<Coord> queue = new Queue<Coord>();
+        queue.Enqueue(startPos);
+        int[,] mapFlags = new int[width, height];
+        mapFlags[startPos.tileX, startPos.tileY] = 1;
+
+         while (queue.Count > 0)
         {
-            if (
-                floorTile.tileX == startPos.tileX &&
-                floorTile.tileY == startPos.tileY
-            )
+            Coord tile = queue.Dequeue();
+            for (int x = tile.tileX - 1; x <= tile.tileX + 1; x++)
             {
-                foregroundTiles
-                    .SetTile(new Vector3Int(-width / 2 + floorTile.tileX,
-                        -height / 2 + floorTile.tileY,
-                        0),
-                    playerIndicator);
-            }
-            int spawnChance =
-                (
-                int
-                )(UnityEngine.Random.Range(0f, .1f) *
-                (
-                Mathf
-                    .Pow(dijkstraMapPlayerPos[floorTile.tileX, floorTile.tileY],
-                    UnityEngine.Random.Range(1f, 2f))
-                ) /
-                1000);
-            if (
-                enemyCount < enemyMax &&
-                spawnChance >= enemySpawnMin &&
-                spawnChance < enemySpawnMax
-            )
-            {
-                foregroundTiles
-                    .SetTile(new Vector3Int(-width / 2 + floorTile.tileX,
-                        -height / 2 + floorTile.tileY,
-                        0),
-                    enemyIndicator);
-                enemyCount += 1;
+                for (int y = tile.tileY - 1; y <= tile.tileY + 1; y++)
+                {
+
+                        if (IsInMapRange(x, y))
+                        {
+                            if (mapFlags[x, y] == 0 && noiseMap[x,y] == 0)
+                            {
+                                int spawnChance =(int)((UnityEngine.Random.Range(.1f, 2f) *(dijkstraMapPlayerPos[tile.tileX, tile.tileY] + 1 ))/UnityEngine.Random.Range(100,800));
+                                if(enemyCount < enemyMax && (spawnChance > enemySpawnMin && spawnChance < enemySpawnMax) && noiseMap[x, y] == 0){
+                                foregroundTiles.SetTile(new Vector3Int(-width / 2 + tile.tileX,-height / 2 + tile.tileY,0),enemyIndicator);
+                                enemyCount +=1;
+                                }
+                                queue.Enqueue(new Coord(x, y));
+                                mapFlags[x, y] = 1;
+
+                            }
+                        }
+                
+                }
             }
         }
     }
 
-    public void FloodTilePlacer(int tileType, Coord startPos, bool followsDjikstra, bool followsSteps){
 
-//TODO make this take a tile type and fill it with tiles from the player starting position, either using Djikstra map or the step count from player that was generated
-
-    }
 
     void OnDrawGizmos()
     {
