@@ -201,6 +201,8 @@ public class Generation : MonoBehaviour
         }
         System.Random prng = new System.Random(seed.GetHashCode());
 
+        //Fix n^2 time complexity
+
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
